@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NeuroChat — Offline AI Chatbot with Persistent Memory & Document Intelligence">
+    <title>NeuroChat — AI with Memory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/chat.css">
+    <link rel="stylesheet" href="/css/documents.css">
+    <link rel="stylesheet" href="/css/memory.css">
+    <link rel="stylesheet" href="/css/analytics.css">
+    <link rel="stylesheet" href="/css/advanced.css">
+</head>
+
+<body>
+    <!-- App Container -->
+    <div id="app" class="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="16" cy="16" r="14" stroke="url(#logo-gradient)" stroke-width="2" />
+                            <path d="M10 16C10 12.5 12.5 10 16 10C19.5 10 22 12.5 22 16" stroke="url(#logo-gradient)"
+                                stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 16C12 14 14 12 16 12C18 12 20 14 20 16" stroke="url(#logo-gradient)"
+                                stroke-width="2" stroke-linecap="round" />
+                            <circle cx="16" cy="16" r="2" fill="url(#logo-gradient)" />
+                            <path d="M16 18V22" stroke="url(#logo-gradient)" stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 20L14 18" stroke="url(#logo-gradient)" stroke-width="1.5"
+                                stroke-linecap="round" />
+                            <path d="M20 20L18 18" stroke="url(#logo-gradient)" stroke-width="1.5"
+                                stroke-linecap="round" />
+                            <defs>
+                                <linearGradient id="logo-gradient" x1="4" y1="4" x2="28" y2="28">
+                                    <stop stop-color="#6366f1" />
+                                    <stop offset="1" stop-color="#a855f7" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="logo-text">NeuroChat</span>
+                </div>
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12h18M3 6h18M3 18h18" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-view="chat" id="nav-chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                    </svg>
+                    <span>Chat</span>
+                </button>
+                <button class="nav-item" data-view="documents" id="nav-documents">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <polyline points="14,2 14,8 20,8" />
+                    </svg>
+                    <span>Documents</span>
+                </button>
+                <button class="nav-item" data-view="memory" id="nav-memory">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a10 10 0 0110 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z" />
+                        <path d="M12 6v6l4 2" />
+                    </svg>
+                    <span>Memory</span>
+                </button>
+                <button class="nav-item" data-view="analytics" id="nav-analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10M12 20V4M6 20v-6" />
+                    </svg>
+                    <span>Analytics</span>
+                </button>
+                <button class="nav-item" data-view="knowledge" id="nav-knowledge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="3" />
+                        <circle cx="5" cy="19" r="3" />
+                        <circle cx="19" cy="19" r="3" />
+                        <line x1="12" y1="8" x2="5" y2="16" />
+                        <line x1="12" y1="8" x2="19" y2="16" />
+                        <line x1="5" y1="16" x2="19" y2="16" />
+                    </svg>
+                    <span>Knowledge</span>
+                </button>
+            </nav>
+
+            <!-- Conversation List (shown in chat view) -->
+            <div id="conversation-list" class="conversation-list">
+                <div class="conversation-list-header">
+                    <h3>Conversations</h3>
+                    <button id="new-chat-btn" class="btn-icon" title="New conversation">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="conversations" class="conversations-scroll"></div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div id="connection-status" class="connection-status disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Checking...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
+            <!-- Chat View -->
+            <div id="view-chat" class="view active">
+                <div class="chat-container">
+                    <!-- Chat Header -->
+                    <div class="chat-header">
+                        <div class="chat-header-info">
+                            <h2 id="chat-title">New Conversation</h2>
+                            <span id="chat-subtitle" class="chat-subtitle">Start a conversation with NeuroChat</span>
+                        </div>
+                        <div class="chat-header-actions">
+                            <button id="export-md-btn" class="btn-icon" title="Export as Markdown">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                    <polyline points="7,10 12,15 17,10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                            </button>
+                            <button id="export-json-btn" class="btn-icon" title="Export as JSON">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                    <polyline points="14,2 14,8 20,8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                </svg>
+                            </button>
+                            <button id="chat-context-btn" class="btn-icon" title="Show context">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Messages -->
+                    <div id="messages-container" class="messages-container">
+                        <div id="messages" class="messages">
+                            <!-- Welcome Screen -->
+                            <div id="welcome-screen" class="welcome-screen">
+                                <div class="welcome-icon">
+                                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="32" cy="32" r="28" stroke="url(#welcome-grad)" stroke-width="2"
+                                            opacity="0.3" />
+                                        <circle cx="32" cy="32" r="20" stroke="url(#welcome-grad)" stroke-width="2"
+                                            opacity="0.5" />
+                                        <circle cx="32" cy="32" r="12" stroke="url(#welcome-grad)" stroke-width="2" />
+                                        <circle cx="32" cy="32" r="4" fill="url(#welcome-grad)" />
+                                        <defs>
+                                            <linearGradient id="welcome-grad" x1="8" y1="8" x2="56" y2="56">
+                                                <stop stop-color="#6366f1" />
+                                                <stop offset="1" stop-color="#a855f7" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                                <h1>Welcome to NeuroChat</h1>
+                                <p>An AI assistant that remembers. Ask me anything, and I'll learn from our
+                                    conversations.</p>
+                                <div class="welcome-features">
+                                    <div class="welcome-feature">
+                                        <div class="feature-icon memory-icon">🧠</div>
+                                        <h3>Persistent Memory</h3>
+                                        <p>I remember important details across conversations</p>
+                                    </div>
+                                    <div class="welcome-feature">
+                                        <div class="feature-icon search-icon">🔍</div>
+                                        <h3>Semantic Search</h3>
+                                        <p>Find answers using intelligent context retrieval</p>
+                                    </div>
+                                    <div class="welcome-feature">
+                                        <div class="feature-icon doc-icon">📄</div>
+                                        <h3>Document Q&A</h3>
+                                        <p>Upload documents and ask questions about them</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Context Panel (slide out) -->
+                    <div id="context-panel" class="context-panel">
+                        <div class="context-panel-header">
+                            <h3>Context Used</h3>
+                            <button id="close-context" class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="context-content" class="context-content">
+                            <p class="empty-state">No context used yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="chat-input-container">
+                        <div class="chat-input-wrapper">
+                            <button id="voice-btn" class="btn-icon voice-btn" title="Voice input">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                                    <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="23" />
+                                    <line x1="8" y1="23" x2="16" y2="23" />
+                                </svg>
+                            </button>
+                            <textarea id="chat-input" placeholder="Type your message or use voice input..." rows="1"
+                                autofocus></textarea>
+                            <button id="send-btn" class="send-btn" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon points="22,2 15,22 11,13 2,9" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="input-footer">
+                            <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents View -->
+            <div id="view-documents" class="view">
+                <div class="page-container">
+                    <div class="page-header">
+                        <div>
+                            <h1>Document Library</h1>
+                            <p class="page-subtitle">Upload and search through your documents</p>
+                        </div>
+                        <button id="upload-doc-btn" class="btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                <polyline points="17,8 12,3 7,8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            Upload Document
+                        </button>
+                    </div>
+
+                    <!-- Document Search -->
+                    <div class="doc-search-container">
+                        <div class="search-input-wrapper">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input type="text" id="doc-search-input" placeholder="Search across all documents..."
+                                class="search-input">
+                        </div>
+                        <div id="doc-search-results" class="doc-search-results hidden"></div>
+                    </div>
+
+                    <!-- Document Grid -->
+                    <div id="documents-grid" class="documents-grid">
+                        <div class="empty-state-card">
+                            <div class="empty-icon">📄</div>
+                            <h3>No documents yet</h3>
+                            <p>Upload PDF, DOCX, TXT, MD, or CSV files to get started</p>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file input -->
+                    <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md,.csv" hidden multiple>
+                </div>
+            </div>
+
+            <!-- Memory View -->
+            <div id="view-memory" class="view">
+                <div class="page-container">
+                    <div class="page-header">
+                        <div>
+                            <h1>Memory Explorer</h1>
+                            <p class="page-subtitle">Browse and manage what I remember</p>
+                        </div>
+                        <div class="header-actions">
+                            <button id="add-memory-btn" class="btn-primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add Memory
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Memory Stats -->
+                    <div id="memory-stats" class="memory-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-memories">0</div>
+                            <div class="stat-label">Total Memories</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="episodic-count">0</div>
+                            <div class="stat-label">Episodic</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="semantic-count">0</div>
+                            <div class="stat-label">Semantic</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avg-importance">0.0</div>
+                            <div class="stat-label">Avg Importance</div>
+                        </div>
+                    </div>
+
+                    <!-- Memory Search -->
+                    <div class="memory-search-container">
+                        <div class="search-input-wrapper">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input type="text" id="memory-search-input" placeholder="Search memories semantically..."
+                                class="search-input">
+                        </div>
+                        <div class="memory-filters">
+                            <button class="filter-btn active" data-type="all">All</button>
+                            <button class="filter-btn" data-type="episodic">Episodic</button>
+                            <button class="filter-btn" data-type="semantic">Semantic</button>
+                            <button class="filter-btn" data-type="procedural">Procedural</button>
+                        </div>
+                    </div>
+
+                    <!-- Memory List -->
+                    <div id="memory-list" class="memory-list">
+                        <div class="empty-state-card">
+                            <div class="empty-icon">🧠</div>
+                            <h3>No memories yet</h3>
+                            <p>Start chatting and I'll automatically remember important details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="view-analytics" class="view">
+                <div class="page-container">
+                    <div class="page-header">
+                        <div>
+                            <h1>Analytics Dashboard</h1>
+                            <p class="page-subtitle">Insights into your usage and data</p>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Cards -->
+                    <div id="analytics-cards" class="analytics-cards">
+                        <div class="analytics-card stat">
+                            <div class="analytics-card-icon conversations-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                                </svg>
+                            </div>
+                            <div class="analytics-card-value" id="analytics-conversations">0</div>
+                            <div class="analytics-card-label">Conversations</div>
+                        </div>
+                        <div class="analytics-card stat">
+                            <div class="analytics-card-icon messages-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path
+                                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                    <polyline points="22,6 12,13 2,6" />
+                                </svg>
+                            </div>
+                            <div class="analytics-card-value" id="analytics-messages">0</div>
+                            <div class="analytics-card-label">Messages</div>
+                        </div>
+                        <div class="analytics-card stat">
+                            <div class="analytics-card-icon memories-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 6v6l4 2" />
+                                </svg>
+                            </div>
+                            <div class="analytics-card-value" id="analytics-memories">0</div>
+                            <div class="analytics-card-label">Memories</div>
+                        </div>
+                        <div class="analytics-card stat">
+                            <div class="analytics-card-icon documents-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                    <polyline points="14,2 14,8 20,8" />
+                                </svg>
+                            </div>
+                            <div class="analytics-card-value" id="analytics-documents">0</div>
+                            <div class="analytics-card-label">Documents</div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Charts -->
+                    <div class="analytics-charts">
+                        <div class="chart-card">
+                            <h3>Messages Over Time</h3>
+                            <div id="messages-chart" class="chart-container">
+                                <canvas id="messages-canvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Memory Distribution</h3>
+                            <div id="memory-chart" class="chart-container">
+                                <canvas id="memory-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Stats -->
+                    <div class="chart-card">
+                        <h3>Search Index Statistics</h3>
+                        <div id="search-stats" class="search-stats-grid">
+                            <p class="empty-state">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Knowledge Graph View -->
+            <div id="view-knowledge" class="view">
+                <div class="page-container">
+                    <div class="page-header">
+                        <div>
+                            <h1>Knowledge Graph</h1>
+                            <p class="page-subtitle">Visual map of entities and relationships extracted from your data
+                            </p>
+                        </div>
+                        <button id="build-graph-btn" class="btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23,4 23,10 17,10" />
+                                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                            </svg>
+                            Build Graph
+                        </button>
+                    </div>
+
+                    <!-- Knowledge Graph Canvas -->
+                    <div class="chart-card" style="margin-bottom: var(--space-6);">
+                        <h3>Entity Relationship Graph</h3>
+                        <div id="kg-container" class="chart-container" style="height: 400px; position: relative;">
+                            <canvas id="kg-canvas"></canvas>
+                            <div id="kg-empty" class="empty-state"
+                                style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                                Click "Build Graph" to visualize your knowledge</div>
+                        </div>
+                    </div>
+
+                    <!-- Topic Clusters -->
+                    <div class="chart-card">
+                        <div
+                            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+                            <h3>Memory Topic Clusters</h3>
+                            <button id="cluster-btn" class="btn-secondary">Cluster Memories</button>
+                        </div>
+                        <div id="topic-clusters" class="topic-clusters">
+                            <p class="empty-state">Click "Cluster Memories" to group memories by topic</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Memory Modal -->
+    <div id="add-memory-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Memory</h2>
+                <button class="modal-close btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea id="memory-content" rows="4" placeholder="What should I remember?"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="memory-type">
+                            <option value="semantic">Semantic (Facts)</option>
+                            <option value="episodic">Episodic (Events)</option>
+                            <option value="procedural">Procedural (How-to)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Importance</label>
+                        <input type="range" id="memory-importance" min="0" max="1" step="0.1" value="0.5">
+                        <span id="importance-value" class="range-value">0.5</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="memory-tags" placeholder="e.g., preference, fact, skill">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-cancel">Cancel</button>
+                <button id="save-memory-btn" class="btn-primary">Save Memory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/chat.js"></script>
+    <script src="/js/documents.js"></script>
+    <script src="/js/memory.js"></script>
+    <script src="/js/analytics.js"></script>
+    <script src="/js/advanced.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+
+</html>

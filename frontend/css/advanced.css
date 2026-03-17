@@ -1,0 +1,108 @@
+/* ==========================================
+   Advanced Features Styles
+   Voice Input, Suggestions, Knowledge Graph, Clusters
+   ========================================== */
+
+/* Voice Button */
+.voice-btn {
+    transition: all var(--transition-fast);
+}
+
+.voice-btn.recording {
+    color: var(--error) !important;
+    animation: pulse-recording 1.5s infinite;
+}
+
+.voice-btn.recording svg {
+    filter: drop-shadow(0 0 6px var(--error));
+}
+
+@keyframes pulse-recording {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+/* Follow-up Suggestions */
+.follow-up-suggestions {
+    padding: var(--space-4) var(--space-6);
+    animation: slideUp 0.4s ease;
+}
+
+.suggestions-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-3);
+}
+
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.suggestion-chip {
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: left;
+    max-width: 100%;
+    word-break: break-word;
+}
+
+.suggestion-chip:hover {
+    background: var(--accent-primary-dim);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Topic Clusters */
+.topic-clusters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.topic-cluster {
+    padding: var(--space-5);
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+}
+
+.topic-cluster:hover {
+    border-color: var(--border-accent);
+    transform: translateX(4px);
+}
+
+/* Knowledge Graph Node Tooltip */
+.kg-tooltip {
+    position: absolute;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    pointer-events: none;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+}

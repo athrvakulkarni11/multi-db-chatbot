@@ -1,0 +1,16 @@
+fastapi 
+uvicorn 
+pydantic 
+python-multipart 
+sentence-transformers 
+faiss-cpu 
+torch 
+numpy 
+requests 
+PyPDF2 
+python-docx 
+markdown 
+beautifulsoup4 
+rank-bm25 
+aiosqlite 
+python-dateutil 

@@ -1,0 +1,127 @@
+# Chapter 3: Methodology
+
+## 3.1 Research Approach
+
+This project adopts an **Applied Research** methodology, wherein existing theories from Natural Language Processing, Information Retrieval, and Machine Learning are applied to solve a practical problem — enabling intelligent, context-aware conversations with persistent memory in a fully offline environment. The system combines multiple established techniques (sentence embeddings, vector similarity search, keyword retrieval, and retrieval-augmented generation) into a unified architecture, and evaluates their effectiveness through experimental implementation.
+
+---
+
+## 3.2 System Architecture
+
+The system is designed using a **Service-Oriented Architecture (SOA)** organized into four layers, each with a clearly defined responsibility:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                PRESENTATION LAYER                    │
+│  Chat Interface, Document Manager, Memory Explorer,  │
+│  Analytics Dashboard (HTML5 / CSS3 / JavaScript)     │
+├─────────────────────────────────────────────────────┤
+│                    API LAYER                         │
+│     RESTful Endpoints with Request Validation        │
+│              (Python – FastAPI)                      │
+├─────────────────────────────────────────────────────┤
+│              BUSINESS LOGIC LAYER                    │
+│   Chat Service  │  Memory Service  │  Document Svc  │
+│─────────────────┴──────────────────┴────────────────│
+│   Search Service (FAISS + BM25)  │  LLM Service    │
+│   Embedding Service (sentence-transformers)         │
+├─────────────────────────────────────────────────────┤
+│                   DATA LAYER                         │
+│   SQLite Database  │  FAISS Vector Store  │  Files  │
+└─────────────────────────────────────────────────────┘
+```
+
+- The **Presentation Layer** provides a single-page web interface that communicates with the backend via REST API calls.
+- The **API Layer** handles request validation, routing, and response formatting using FastAPI with Pydantic schema enforcement.
+- The **Business Logic Layer** contains six services. The Chat Service orchestrates the conversation pipeline. The Memory Service manages the lifecycle of memories. The Document Service handles file parsing and indexing. The Search Service provides hybrid retrieval. The Embedding Service encodes text into vectors. The LLM Service interfaces with the local language model.
+- The **Data Layer** uses SQLite for structured data (conversations, messages, memories, document metadata), FAISS for vector embeddings, and the local file system for uploaded documents.
+
+---
+
+## 3.3 Working Methodology
+
+### 3.3.1 Semantic Search using Embeddings
+
+Text (user queries, memories, and document chunks) is converted into 384-dimensional dense vectors using the **all-MiniLM-L6-v2** sentence-transformer model. These vectors capture the semantic meaning of the text such that conceptually similar texts produce vectors with high cosine similarity, even if they share no common words.
+
+The vectors are stored in a **FAISS IndexFlatIP** (Inner Product) index. Since all embeddings are L2-normalized during encoding, the inner product is mathematically equivalent to cosine similarity:
+
+```
+similarity(q, d) = q · d = Σ (qᵢ × dᵢ),  i = 1 to 384
+```
+
+Where **q** is the query vector and **d** is a stored vector. At query time, FAISS performs an exhaustive search across all indexed vectors and returns the top-K results with the highest similarity scores.
+
+### 3.3.2 Hybrid Retrieval (Dense + Sparse Fusion)
+
+Purely semantic search can miss results that match on specific keywords but differ in phrasing, while purely keyword-based search cannot understand meaning. To address this, the system implements **hybrid retrieval** by combining two complementary methods:
+
+- **Dense retrieval** (FAISS) — captures semantic similarity using learned embeddings
+- **Sparse retrieval** (BM25 Okapi) — captures lexical relevance using term frequency and inverse document frequency
+
+The scores from both methods are normalized to a [0, 1] range and combined using a weighted linear fusion:
+
+```
+score(d) = α × normalize(FAISS_score(d)) + (1 − α) × normalize(BM25_score(d))
+```
+
+Where **α = 0.7**, giving higher weight to semantic understanding. The fused results are sorted by combined score and the top-K documents are returned. This hybrid approach consistently outperforms either method used in isolation.
+
+### 3.3.3 Retrieval-Augmented Generation (RAG)
+
+Rather than relying solely on the language model's pre-trained knowledge, the system grounds every response in the user's own data using the **Retrieval-Augmented Generation** paradigm. When a user sends a message, the following pipeline is executed:
+
+1. The user query is embedded and used to retrieve the **top-5 relevant memories** and **top-3 relevant document chunks** via hybrid search.
+2. The retrieved context is injected into the system prompt alongside the last 10 messages of conversation history.
+3. The augmented prompt is sent to the local LLM (running via Ollama), which generates a response grounded in the provided context.
+4. The response is streamed to the user in real-time via Server-Sent Events (SSE).
+
+This approach ensures that the chatbot's answers are factually anchored to information the user has previously provided or uploaded, rather than being purely generative.
+
+### 3.3.4 Persistent Memory with Importance Scoring and Decay
+
+The memory system is designed to mimic aspects of human memory. After each conversation exchange, the LLM analyses the exchange and extracts factual statements worth remembering (e.g., user preferences, personal details, key instructions). Each extracted memory is:
+
+- **Classified** into one of three types: Episodic (events), Semantic (facts), or Procedural (instructions).
+- **Scored for importance** by the LLM on a scale of 0.0 (trivial) to 1.0 (critical). This score determines retrieval priority.
+- **Embedded** and indexed in the FAISS vector store for future semantic retrieval.
+
+Over time, memories that are not accessed undergo **temporal decay**, reducing their retrieval priority:
+
+```
+decay_factor(t) = max(0.1, decay_factor(t−1) − λ),  λ = 0.01 per day
+```
+
+This ensures that frequently accessed memories remain prominent while stale information gradually fades. Additionally, after every 20 messages in a conversation, the system performs **memory consolidation** — the LLM summarizes the conversation into a single semantic memory, preserving key information while reducing storage overhead.
+
+### 3.3.5 Document Processing and Indexing
+
+When a user uploads a document, the system processes it through the following steps:
+
+1. **Text extraction** — Format-specific parsers (PyPDF2 for PDF, python-docx for DOCX, built-in readers for TXT/MD/CSV) extract raw text from the file.
+2. **Text cleaning** — Excessive whitespace, special characters, and formatting artifacts are normalized.
+3. **Chunking** — The text is split into chunks of approximately 500 characters using a **paragraph-aware** strategy that respects natural text boundaries. Adjacent chunks maintain a 50-character overlap to preserve context across boundaries.
+4. **Embedding and indexing** — Each chunk is encoded into a 384-dimensional vector and added to the FAISS index, making it searchable alongside memory embeddings.
+
+This pipeline ensures that uploaded documents become immediately available for retrieval during conversations.
+
+---
+
+## 3.4 Tools and Technologies
+
+| Component | Technology | Justification |
+|-----------|-----------|---------------|
+| Backend | Python, FastAPI | High-performance async framework with automatic API documentation and Pydantic validation |
+| Language Model | Ollama (llama3.2) | Enables running open-source LLMs locally without cloud dependency, preserving user privacy |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Lightweight model (90MB) with strong performance on semantic similarity benchmarks; produces 384-dim normalized vectors |
+| Vector Search | FAISS (faiss-cpu) | Industry-standard similarity search library developed by Meta AI; supports exact nearest-neighbor search on dense vectors |
+| Keyword Search | rank-bm25 | Standard probabilistic retrieval model based on term frequency; complements dense retrieval for exact term matching |
+| Database | SQLite | Zero-configuration, serverless, file-based relational database; ideal for offline single-user applications |
+| Document Parsing | PyPDF2, python-docx | Mature and widely-adopted libraries for extracting text from PDF and Microsoft Word formats |
+| Frontend | HTML5, CSS3, JavaScript | No build tools or framework dependencies required; ensures maximum portability across environments |
+
+---
+
+## 3.5 Summary
+
+The methodology adopted for this project combines applied research with a service-oriented system design. The core technical approach centres on three pillars: **(1)** a hybrid search engine that fuses dense (FAISS) and sparse (BM25) retrieval for robust information access, **(2)** a persistent memory system with LLM-driven importance scoring and temporal decay that models long-term information retention, and **(3)** a retrieval-augmented generation pipeline that grounds every response in user-specific context. All processing occurs locally, ensuring complete data privacy and offline operation.
