@@ -233,3 +233,17 @@ class DocumentService:
     def get_stats(self) -> dict:
         """Get document statistics."""
         return DocumentDB.get_stats()
+
+    def process_local_file(self, file_path: str) -> dict:
+        """
+        Process a local file (for auto-indexing from watch folder).
+        Copies the file then processes it like an upload.
+        """
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        with open(path, "rb") as f:
+            content = f.read()
+
+        return self.upload_document(path.name, content)

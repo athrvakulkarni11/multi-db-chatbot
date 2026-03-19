@@ -16,6 +16,14 @@ DATA_DIR.mkdir(exist_ok=True)
 UPLOAD_DIR.mkdir(exist_ok=True)
 VECTOR_DIR.mkdir(exist_ok=True)
 
+# Advanced feature directories
+MEMORY_STORE_DIR = DATA_DIR / "memory_store"
+WATCH_DIR = DATA_DIR / "watch_folder"
+NOTES_DIR = DATA_DIR / "notes"
+MEMORY_STORE_DIR.mkdir(exist_ok=True)
+WATCH_DIR.mkdir(exist_ok=True)
+NOTES_DIR.mkdir(exist_ok=True)
+
 # Ollama settings
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")

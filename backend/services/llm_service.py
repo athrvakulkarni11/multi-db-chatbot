@@ -13,6 +13,46 @@ class LLMService:
     def __init__(self):
         self.base_url = OLLAMA_BASE_URL
         self.model = OLLAMA_MODEL
+        self._model_history: list[str] = [OLLAMA_MODEL]
+
+    def switch_model(self, model_name: str) -> dict:
+        """Switch to a different Ollama model."""
+        old_model = self.model
+        self.model = model_name
+        if model_name not in self._model_history:
+            self._model_history.append(model_name)
+        health = self.check_health()
+        if not health.get("model_ready", False):
+            logger.warning(f"Model '{model_name}' not found in Ollama. You may need to pull it.")
+        logger.info(f"Switched model: {old_model} -> {model_name}")
+        return {
+            "previous_model": old_model,
+            "current_model": model_name,
+            "model_ready": health.get("model_ready", False),
+            "available_models": health.get("models_available", [])
+        }
+
+    def get_available_models(self) -> list[str]:
+        """List all models available in Ollama."""
+        try:
+            resp = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if resp.status_code == 200:
+                return [m["name"] for m in resp.json().get("models", [])]
+        except Exception:
+            pass
+        return []
+
+    def pull_model(self, model_name: str) -> dict:
+        """Pull a model from Ollama registry."""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/api/pull",
+                json={"name": model_name, "stream": False},
+                timeout=600  # Models can be large
+            )
+            return {"status": "success", "model": model_name}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
 
     def check_health(self) -> dict:
         """Check if Ollama is running and the model is available."""
@@ -150,16 +190,21 @@ Summary:"""
 
     def extract_memories(self, user_message: str, assistant_response: str) -> list[str]:
         """Extract memorable facts from a conversation exchange."""
-        prompt = f"""Extract key facts, preferences, or important information from this exchange that would be useful to remember for future conversations.
-Return each fact as a separate line. Only include genuinely useful information.
-If there's nothing worth remembering, respond with "NONE".
+        prompt = f"""You are a memory extraction module for a specific user. Your job is to extract HIGHLY PERSONAL and USEFUL episodic facts about the USER from the exchange below.
 
-User: {user_message}
-Assistant: {assistant_response}
+RULES for Memory Extraction:
+1. ONLY extract facts about the User (e.g., their name, their job, their specific preferences, their current projects, their thoughts/opinions).
+2. NEVER extract general encyclopedic statements (e.g., "AI has three variants", "The World Cup is in India").
+3. NEVER extract Assistant meta-talk (e.g., "I am an AI", "Cannot connect to Ollama", "Here are the extracted facts").
+4. If the exchange does not contain any new personal facts about the User, you MUST respond exactly with the word "NONE".
+5. Write each extracted fact on a new line without numbers or bullet points.
 
-Key facts (one per line):"""
+User said: {user_message}
+Assistant replied: {assistant_response}
 
-        response = self.generate(prompt, temperature=0.3, max_tokens=300)
+User Facts (or NONE):"""
+
+        response = self.generate(prompt, temperature=0.1, max_tokens=200)
         if "NONE" in response.upper():
             return []
         
