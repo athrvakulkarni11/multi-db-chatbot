@@ -257,6 +257,62 @@ const api = {
         return response.text();
     },
 
+    // --- System ---
+    async getModels() {
+        const response = await fetch(`${API_BASE}/system/models`);
+        if (!response.ok) throw new Error('Failed to load models');
+        return response.json();
+    },
+
+    async switchModel(modelName) {
+        const response = await fetch(`${API_BASE}/system/models/switch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model_name: modelName })
+        });
+        if (!response.ok) throw new Error('Failed to switch model');
+        return response.json();
+    },
+
+    async getTools() {
+        const response = await fetch(`${API_BASE}/system/tools`);
+        if (!response.ok) throw new Error('Failed to load tools');
+        return response.json();
+    },
+
+    async getWatchFolderStatus() {
+        const response = await fetch(`${API_BASE}/system/watch-folder/status`);
+        if (!response.ok) throw new Error('Failed to get watch folder status');
+        return response.json();
+    },
+
+    async scanWatchFolder() {
+        const response = await fetch(`${API_BASE}/system/watch-folder/scan`, { method: 'POST' });
+        if (!response.ok) throw new Error('Scan failed');
+        return response.json();
+    },
+
+    async getSystemInfo() {
+        const response = await fetch(`${API_BASE}/system/info`);
+        if (!response.ok) throw new Error('Failed to get system info');
+        return response.json();
+    },
+
+    async getMemoryStoreStats() {
+        const response = await fetch(`${API_BASE}/system/memory-store/stats`);
+        if (!response.ok) throw new Error('Failed to get memory store stats');
+        return response.json();
+    },
+
+    async getMemoryAssociations(memoryId = null) {
+        const url = memoryId
+            ? `${API_BASE}/system/memory-store/associations?memory_id=${memoryId}`
+            : `${API_BASE}/system/memory-store/associations`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to get associations');
+        return response.json();
+    },
+
     // --- Health ---
     async checkHealth() {
         try {

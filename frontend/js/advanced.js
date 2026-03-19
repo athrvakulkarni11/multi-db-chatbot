@@ -51,185 +51,352 @@ const AdvancedManager = {
         }
     },
 
+    canvas: null,
+    ctx: null,
+    dragNode: null,
+    hoverNode: null,
+    mouseX: 0,
+    mouseY: 0,
+    isSimulating: false,
+
     renderGraph(data) {
-        const canvas = document.getElementById('kg-canvas');
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
+
+        this.canvas = document.getElementById('kg-canvas');
+        this.ctx = this.canvas.getContext('2d');
         const container = document.getElementById('kg-container');
         const emptyMsg = document.getElementById('kg-empty');
-        const ctx = canvas.getContext('2d');
 
         if (!data.nodes || data.nodes.length === 0) {
             if (emptyMsg) emptyMsg.style.display = 'flex';
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             return;
         }
         if (emptyMsg) emptyMsg.style.display = 'none';
 
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        // Resize handler with High-DPI support
+        const resize = () => {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = container.getBoundingClientRect();
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+            this.canvas.style.width = `${rect.width}px`;
+            this.canvas.style.height = `${rect.height}px`;
+            this.ctx = this.canvas.getContext('2d');
+            // We do not use ctx.scale here because we handle physical coords directly
+        };
+        resize();
+        window.addEventListener('resize', resize);
 
-        const width = canvas.width;
-        const height = canvas.height;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
         const centerX = width / 2;
         const centerY = height / 2;
 
-        // Type colors
-        const typeColors = {
-            'PERSON': '#6366f1',
-            'PLACE': '#22c55e',
-            'ORG': '#f59e0b',
-            'CONCEPT': '#a855f7',
-            'TECH': '#3b82f6',
-            'EVENT': '#ef4444',
-            'OTHER': '#64748b'
-        };
-
-        // Position nodes in a force-directed-like layout
-        const nodes = data.nodes.map((node, i) => {
-            const angle = (i / data.nodes.length) * Math.PI * 2;
-            const radius = Math.min(width, height) * 0.33;
-            // Add some randomness for organic feel
-            const jitterX = (Math.random() - 0.5) * 60;
-            const jitterY = (Math.random() - 0.5) * 60;
+        const dpr = window.devicePixelRatio || 1;
+        // Initialize nodes
+        this.nodes = data.nodes.map((node, i) => {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * Math.min(width, height) * 0.4;
             return {
                 ...node,
-                x: centerX + Math.cos(angle) * radius + jitterX,
-                y: centerY + Math.sin(angle) * radius + jitterY,
+                x: centerX + Math.cos(angle) * Math.max(50 * dpr, radius),
+                y: centerY + Math.sin(angle) * Math.max(50 * dpr, radius),
                 vx: 0,
                 vy: 0,
-                radius: Math.max(18, Math.min(35, 15 + (node.count || 1) * 5))
+                radius: Math.max(20, Math.min(45, 18 + (node.count || 1) * 6)) * dpr
             };
         });
 
-        // Simple force simulation (a few steps)
-        const nodeMap = {};
-        nodes.forEach(n => nodeMap[n.id] = n);
+        this.edges = data.edges || [];
 
-        for (let iter = 0; iter < 50; iter++) {
-            // Repulsion between all nodes
-            for (let i = 0; i < nodes.length; i++) {
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const dx = nodes[j].x - nodes[i].x;
-                    const dy = nodes[j].y - nodes[i].y;
-                    const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-                    const force = 800 / (dist * dist);
+        // Bind Mouse Events
+        this._bindCanvasEvents();
+
+        this.isSimulating = true;
+        this._animate();
+    },
+
+    _bindCanvasEvents() {
+        // Remove old listeners to avoid duplicates
+        const newCanvas = this.canvas.cloneNode(true);
+        // Ensure properties copy over
+        newCanvas.width = this.canvas.width;
+        newCanvas.height = this.canvas.height;
+        
+        this.canvas.parentNode.replaceChild(newCanvas, this.canvas);
+        this.canvas = newCanvas;
+        this.ctx = this.canvas.getContext('2d');
+
+        const getMousePos = (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) * (this.canvas.width / rect.width),
+                y: (e.clientY - rect.top) * (this.canvas.height / rect.height)
+            };
+        };
+
+        this.canvas.addEventListener('mousedown', (e) => {
+            const pos = getMousePos(e);
+            // Find clicked node (reverse order for top-most)
+            for (let i = this.nodes.length - 1; i >= 0; i--) {
+                const node = this.nodes[i];
+                const dx = pos.x - node.x;
+                const dy = pos.y - node.y;
+                if (dx * dx + dy * dy <= node.radius * node.radius) {
+                    this.dragNode = node;
+                    node.vx = 0;
+                    node.vy = 0;
+                    break;
+                }
+            }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            const pos = getMousePos(e);
+            this.mouseX = pos.x;
+            this.mouseY = pos.y;
+
+            if (this.dragNode) {
+                this.dragNode.x = pos.x;
+                this.dragNode.y = pos.y;
+                this.dragNode.vx = 0;
+                this.dragNode.vy = 0;
+                this.isSimulating = true; // Wake up physics
+            } else {
+                // Check hover
+                this.hoverNode = null;
+                for (let i = this.nodes.length - 1; i >= 0; i--) {
+                    const node = this.nodes[i];
+                    const dx = pos.x - node.x;
+                    const dy = pos.y - node.y;
+                    if (dx * dx + dy * dy <= node.radius * node.radius) {
+                        this.hoverNode = node;
+                        this.canvas.style.cursor = 'pointer';
+                        break;
+                    }
+                }
+                if (!this.hoverNode) this.canvas.style.cursor = 'default';
+            }
+        });
+
+        this.canvas.addEventListener('mouseup', () => {
+            this.dragNode = null;
+        });
+
+        this.canvas.addEventListener('mouseleave', () => {
+            this.dragNode = null;
+            this.hoverNode = null;
+        });
+    },
+
+    _animate() {
+        if (!this.ctx) return;
+        this.animationFrame = requestAnimationFrame(() => this._animate());
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        let totalVelocity = 0;
+
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Physics Step
+        if (this.isSimulating) {
+            const nodeMap = {};
+            this.nodes.forEach(n => nodeMap[n.id] = n);
+
+            // Repulsion
+            for (let i = 0; i < this.nodes.length; i++) {
+                for (let j = i + 1; j < this.nodes.length; j++) {
+                    const n1 = this.nodes[i];
+                    const n2 = this.nodes[j];
+                    const dx = n2.x - n1.x;
+                    const dy = n2.y - n1.y;
+                    const distSq = Math.max(1, dx * dx + dy * dy);
+                    const dist = Math.sqrt(distSq);
+                    
+                    // Stronger repulsion for close nodes
+                    const force = (3000 * dpr * dpr) / distSq;
                     const fx = (dx / dist) * force;
                     const fy = (dy / dist) * force;
-                    nodes[i].vx -= fx;
-                    nodes[i].vy -= fy;
-                    nodes[j].vx += fx;
-                    nodes[j].vy += fy;
+
+                    if (n1 !== this.dragNode) { n1.vx -= fx; n1.vy -= fy; }
+                    if (n2 !== this.dragNode) { n2.vx += fx; n2.vy += fy; }
                 }
             }
 
-            // Attraction along edges
-            for (const edge of (data.edges || [])) {
+            // Attraction (Edges)
+            for (const edge of this.edges) {
                 const source = nodeMap[edge.source];
                 const target = nodeMap[edge.target];
                 if (!source || !target) continue;
+
                 const dx = target.x - source.x;
                 const dy = target.y - source.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const force = (dist - 120) * 0.01;
-                const fx = (dx / Math.max(1, dist)) * force;
-                const fy = (dy / Math.max(1, dist)) * force;
-                source.vx += fx;
-                source.vy += fy;
-                target.vx -= fx;
-                target.vy -= fy;
+                const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+                
+                // Ideal spring length ~150px
+                const force = (dist - 150 * dpr) * 0.02;
+                const fx = (dx / dist) * force;
+                const fy = (dy / dist) * force;
+
+                if (source !== this.dragNode) { source.vx += fx; source.vy += fy; }
+                if (target !== this.dragNode) { target.vx -= fx; target.vy -= fy; }
             }
 
-            // Center gravity
-            for (const node of nodes) {
-                node.vx += (centerX - node.x) * 0.002;
-                node.vy += (centerY - node.y) * 0.002;
-                node.x += node.vx * 0.3;
-                node.y += node.vy * 0.3;
-                node.vx *= 0.8;
-                node.vy *= 0.8;
-                // Keep in bounds
-                node.x = Math.max(node.radius + 10, Math.min(width - node.radius - 10, node.x));
-                node.y = Math.max(node.radius + 10, Math.min(height - node.radius - 10, node.y));
+            // Center Gravity & Update
+            for (const node of this.nodes) {
+                if (node !== this.dragNode) {
+                    node.vx += (centerX - node.x) * 0.005;
+                    node.vy += (centerY - node.y) * 0.005;
+                    node.x += node.vx;
+                    node.y += node.vy;
+                    node.vx *= 0.85; // Friction
+                    node.vy *= 0.85;
+                }
+                
+                // Bounds
+                node.x = Math.max(node.radius + 5, Math.min(width - node.radius - 5, node.x));
+                node.y = Math.max(node.radius + 5, Math.min(height - node.radius - 5, node.y));
+                
+                totalVelocity += Math.abs(node.vx) + Math.abs(node.vy);
+            }
+
+            // Sleep if stabilized
+            if (totalVelocity < 0.5 && !this.dragNode) {
+                this.isSimulating = false;
             }
         }
 
-        this.nodes = nodes;
+        this._draw();
+    },
 
-        // Draw
+    _draw() {
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const dpr = window.devicePixelRatio || 1;
+        const ctx = this.ctx;
+
         ctx.clearRect(0, 0, width, height);
 
-        // Draw edges
-        for (const edge of (data.edges || [])) {
+        const typeColors = {
+            'PERSON': '#6366f1', 'PLACE': '#22c55e', 'ORG': '#f59e0b',
+            'CONCEPT': '#a855f7', 'TECH': '#3b82f6', 'EVENT': '#ef4444',
+            'OTHER': '#64748b'
+        };
+
+        const nodeMap = {};
+        this.nodes.forEach(n => nodeMap[n.id] = n);
+
+        // Draw Edges
+        ctx.lineWidth = 1.5;
+        for (const edge of this.edges) {
             const source = nodeMap[edge.source];
             const target = nodeMap[edge.target];
             if (!source || !target) continue;
 
+            const isHovered = this.hoverNode === source || this.hoverNode === target;
+            
             ctx.beginPath();
             ctx.moveTo(source.x, source.y);
             ctx.lineTo(target.x, target.y);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = isHovered ? 'rgba(255, 255, 255, 0.4)' : 'rgba(160, 160, 184, 0.15)';
             ctx.stroke();
 
-            // Edge label
-            const midX = (source.x + target.x) / 2;
-            const midY = (source.y + target.y) / 2;
-            ctx.fillStyle = 'rgba(160, 160, 184, 0.6)';
-            ctx.font = '9px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText(edge.relation || '', midX, midY - 4);
-        }
-
-        // Draw nodes
-        for (const node of nodes) {
-            const color = typeColors[node.type] || typeColors.OTHER;
-
-            // Glow effect
+            // Arrow head
+            const angle = Math.atan2(target.y - source.y, target.x - source.x);
+            const arrowX = target.x - Math.cos(angle) * (target.radius + 5);
+            const arrowY = target.y - Math.sin(angle) * (target.radius + 5);
             ctx.beginPath();
-            ctx.arc(node.x, node.y, node.radius + 4, 0, Math.PI * 2);
-            ctx.fillStyle = color + '20';
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 8 * Math.cos(angle - Math.PI/6), arrowY - 8 * Math.sin(angle - Math.PI/6));
+            ctx.lineTo(arrowX - 8 * Math.cos(angle + Math.PI/6), arrowY - 8 * Math.sin(angle + Math.PI/6));
+            ctx.fillStyle = ctx.strokeStyle;
             ctx.fill();
 
-            // Node circle
+            // Edge label
+            if (edge.relation && (isHovered || this.dragNode)) {
+                const midX = (source.x + target.x) / 2;
+                const midY = (source.y + target.y) / 2;
+                ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(160, 160, 184, 0.8)';
+                ctx.font = isHovered ? `bold ${10 * dpr}px Inter` : `${9 * dpr}px Inter`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Background wrapper for text
+                const textWidth = ctx.measureText(edge.relation).width;
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fillRect(midX - textWidth/2 - 4*dpr, midY - 6*dpr, textWidth + 8*dpr, 12*dpr);
+                
+                ctx.fillStyle = isHovered ? '#60a5fa' : 'rgba(160, 160, 184, 0.9)';
+                ctx.fillText(edge.relation, midX, midY);
+            }
+        }
+
+        // Draw Nodes
+        for (const node of this.nodes) {
+            const color = typeColors[node.type] || typeColors.OTHER;
+            const isHovered = this.hoverNode === node;
+            const isDragged = this.dragNode === node;
+
+            // Glow
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, node.radius + (isHovered ? 8 : 2), 0, Math.PI * 2);
+            ctx.fillStyle = isHovered ? color + '40' : color + '15';
+            ctx.fill();
+
+            // Body
             ctx.beginPath();
             ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
             const gradient = ctx.createRadialGradient(
                 node.x - node.radius * 0.3, node.y - node.radius * 0.3, 0,
                 node.x, node.y, node.radius
             );
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, color + '99');
+            gradient.addColorStop(0, isHovered ? '#ffffff' : color);
+            gradient.addColorStop(1, color + 'e0');
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
+            // Border
+            ctx.strokeStyle = isHovered ? '#ffffff' : color;
+            ctx.lineWidth = isHovered ? 3 : 1;
             ctx.stroke();
 
             // Label
             ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${Math.max(9, 12 - Math.floor(node.label.length / 4))}px Inter`;
+            ctx.font = `bold ${Math.max(10, 14 - Math.floor(node.label.length / 5)) * dpr}px Inter`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const label = node.label.length > 10 ? node.label.substring(0, 9) + '…' : node.label;
-            ctx.fillText(label, node.x, node.y);
+            const displayLabel = node.label.length > 15 && !isHovered ? node.label.substring(0, 13) + '…' : node.label;
+            ctx.fillText(displayLabel, node.x, node.y);
 
-            // Type badge below
-            ctx.fillStyle = 'rgba(160, 160, 184, 0.7)';
-            ctx.font = '8px Inter';
-            ctx.fillText(node.type, node.x, node.y + node.radius + 12);
+            // Type
+            if (node.radius >= 25 || isHovered) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = `${8 * dpr}px Inter`;
+                ctx.fillText(node.type, node.x, node.y + 12 * dpr);
+            }
         }
 
         // Legend
-        let legendX = 10;
-        const legendY = height - 15;
-        ctx.font = '10px Inter';
+        let legendX = 20;
+        const legendY = height - 20;
+        ctx.font = '11px Inter';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
         for (const [type, color] of Object.entries(typeColors)) {
             ctx.fillStyle = color;
-            ctx.fillRect(legendX, legendY - 4, 8, 8);
-            ctx.fillStyle = '#a0a0b8';
-            ctx.textAlign = 'left';
-            ctx.fillText(type, legendX + 12, legendY + 3);
-            legendX += ctx.measureText(type).width + 24;
-            if (legendX > width - 60) break;
+            ctx.beginPath();
+            ctx.arc(legendX + 4, legendY, 5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillText(type, legendX + 14, legendY);
+            legendX += ctx.measureText(type).width + 30;
+            if (legendX > width - 80) break;
         }
     },
 

@@ -14,6 +14,7 @@ const App = {
         MemoryManager.init();
         AnalyticsDashboard.init();
         AdvancedManager.init();
+        SystemManager.init();
 
         // Bind navigation
         this.bindNavigation();
@@ -76,6 +77,9 @@ const App = {
                 break;
             case 'knowledge':
                 AdvancedManager.loadKnowledgeView();
+                break;
+            case 'settings':
+                SystemManager.loadSettingsView();
                 break;
         }
     },

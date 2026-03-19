@@ -95,6 +95,10 @@
                     </svg>
                     <span>Knowledge</span>
                 </button>
+                <button class="nav-item" data-view="settings" id="nav-settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span>Settings</span>
+                </button>
             </nav>
 
             <!-- Conversation List (shown in chat view) -->
@@ -482,6 +486,55 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="view">
+                <div class="page-container">
+                    <div class="page-header">
+                        <div>
+                            <h1>System Settings</h1>
+                            <p class="page-subtitle">Configure model, tools, watch folder, and memory store</p>
+                        </div>
+                    </div>
+
+                    <!-- Model Switching -->
+                    <div class="chart-card" style="margin-bottom: var(--space-6);">
+                        <h3>🤖 Model Management</h3>
+                        <div style="display:flex;align-items:center;gap:var(--space-4);margin-top:var(--space-4);flex-wrap:wrap;">
+                            <select id="model-select" class="search-input" style="max-width:300px;"></select>
+                            <button id="switch-model-btn" class="btn-primary">Switch Model</button>
+                            <span id="current-model-label" style="color:var(--text-tertiary);font-size:var(--text-sm);"></span>
+                        </div>
+                    </div>
+
+                    <!-- Tools -->
+                    <div class="chart-card" style="margin-bottom: var(--space-6);">
+                        <h3>🔧 Tool / Plugin System</h3>
+                        <div id="tools-list" style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+                            <p class="empty-state">Loading tools...</p>
+                        </div>
+                    </div>
+
+                    <!-- Watch Folder -->
+                    <div class="chart-card" style="margin-bottom: var(--space-6);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <h3>📂 Auto-Index Watch Folder</h3>
+                            <button id="scan-watch-btn" class="btn-secondary">Scan Now</button>
+                        </div>
+                        <div id="watch-folder-info" style="margin-top:var(--space-4);">
+                            <p class="empty-state">Loading...</p>
+                        </div>
+                    </div>
+
+                    <!-- File Memory Store -->
+                    <div class="chart-card">
+                        <h3>📁 File-System Memory Store</h3>
+                        <div id="file-memory-stats" style="margin-top:var(--space-4);">
+                            <p class="empty-state">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -541,6 +594,7 @@
     <script src="/js/memory.js"></script>
     <script src="/js/analytics.js"></script>
     <script src="/js/advanced.js"></script>
+    <script src="/js/system.js"></script>
     <script src="/js/app.js"></script>
 </body>
 

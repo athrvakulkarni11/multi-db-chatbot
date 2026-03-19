@@ -5,7 +5,9 @@ __pycache__/
 *.so
 venv/
 .env
-
+*.json
+*.txt
+*.db
 # Data (auto-generated)
 data/neurochat.db
 data/vectors/
